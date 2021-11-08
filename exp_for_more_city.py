@@ -7,7 +7,7 @@ from util import plot_path
 
 def exp_on_city_number(city_n=100):
     data = [(random.random(), random.random()) for i in range(city_n)]
-    tsp = MyGAForTSP(pop_size=40, mutation_rate=0.5, crossover_rate=0.9, max_generation=2000)
+    tsp = MyGAForTSP(pop_size=20, mutation_rate=0.05, crossover_rate=0.7, max_generation=500)
     rec = tsp.run(data)
     plot_path(rec, data)
 
