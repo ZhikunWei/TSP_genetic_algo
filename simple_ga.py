@@ -238,9 +238,9 @@ if __name__ == '__main__':
     data = [[0.3642, 0.7770], [0.7185, 0.8312], [0.0986, 0.5891], [0.2954, 0.9606], [0.5951, 0.4647],
             [0.6697, 0.7657], [0.4353, 0.1709], [0.2131, 0.8349], [0.3479, 0.6984], [0.4516, 0.0488]]
     tsp = MyGAForTSP(pop_size=10, mutation_rate=0.1, crossover_rate=0.7, max_generation=1000)
-    # rec = tsp.run(data)
-    # print(rec[-1])
-    # plot_path(rec, data)
+    rec = tsp.run(data)
+    print(rec[-1])
+    plot_path(rec, data)
     
     ######################################### experiment on parameters ##########################
     for p in [5, 10, 20, 30, 40]:
