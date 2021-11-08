@@ -36,9 +36,10 @@ class MyGAForTSP():
         init_chromosome = [i for i in range(self.city_n)]
         self.pop = []
         while len(self.pop) < self.pop_size:
-            random.shuffle(init_chromosome)
-            if self.check_conditions(init_chromosome):
-                self.pop.append(init_chromosome.copy())
+            self.pop.append(self.generate_chromosome())
+            # random.shuffle(init_chromosome)
+            # if self.check_conditions(init_chromosome):
+            #     self.pop.append(init_chromosome.copy())
         fitnesses, best_individual, best_fitness = self.evaluation_fitness(self.pop)
         running_rec.append((best_individual, best_fitness))
         for gen in range(self.max_generation):
@@ -51,21 +52,37 @@ class MyGAForTSP():
             children.append(best_individual)
             valid_children = []
             for i in range(len(children)):
-                if self.check_conditions(children[i]):
+                if self.check_conditions(children[i]) and children[i] not in valid_children:
                     valid_children.append(children[i])
-            valid_children = list(set(valid_children))
+            print('len(valid_children)', len(valid_children))
             while len(valid_children) < self.pop_size:
-                random.shuffle(init_chromosome)
-                if self.check_conditions(init_chromosome) and init_chromosome not in valid_children:
-                    valid_children.append(init_chromosome.copy())
+                chr = self.generate_chromosome()
+                if self.check_conditions(chr) and chr not in valid_children:
+                    valid_children.append(chr)
+                # random.shuffle(init_chromosome)
+                # if self.check_conditions(init_chromosome) and init_chromosome not in valid_children:
+                #     valid_children.append(init_chromosome.copy())
             fitnesses, best_individual, best_fitness = self.evaluation_fitness(valid_children)
             running_rec.append((best_individual, best_fitness))
             sorted_children = sorted([(c, f) for c, f in zip(valid_children, fitnesses)], key=lambda x: x[1])[
                               :self.pop_size]
             self.pop = [c[0] for c in sorted_children]
-            if gen % 10 == 0:
-                print(gen, rec[-1])
+            print(gen, running_rec[-1]) if gen % 50 == 0 else None
         return running_rec
+    
+    def generate_chromosome(self):
+        if self.cluster:
+            cluster_order = [i for i in range(len(self.cluster))]
+            random.shuffle(cluster_order)
+            chromosome = []
+            for cluster_id in cluster_order:
+                path_in_cluster = list(self.cluster[cluster_id])
+                random.shuffle(path_in_cluster)
+                chromosome += path_in_cluster.copy()
+            return chromosome
+        chromosome = [i for i in range(self.city_n)]
+        random.shuffle(chromosome)
+        return chromosome.copy()
     
     def check_conditions(self, chromosome):
         return self.check_sequential(chromosome) and self.check_time_window(chromosome) and self.check_cluster(chromosome)
@@ -107,6 +124,8 @@ class MyGAForTSP():
             while node_cnt < len(self.cluster[cur_cluster]) and chromosome[index] in self.cluster[cur_cluster]:
                 node_cnt += 1
                 index += 1
+            if index == len(chromosome):
+                return True
             if node_cnt == len(self.cluster[cur_cluster]):
                 for i in range(len(self.cluster)):
                     if chromosome[index] in self.cluster[i]:
@@ -145,11 +164,12 @@ class MyGAForTSP():
         return fitnesses, best_individual, best_fitness
     
     def mutate(self, chromosome):
-        for i in range(len(chromosome)):
-            for j in range(i):
-                if random.random() < self.mutation_rate:
-                    chromosome[i], chromosome[j] = chromosome[j], chromosome[i]
-        return chromosome
+        if random.random() > self.mutation_rate:
+            return chromosome.copy()
+        i = random.randint(0, len(chromosome)-1)
+        j = random.randint(0, len(chromosome)-1)
+        chromosome[i], chromosome[j] = chromosome[j], chromosome[i]
+        return chromosome.copy()
     
     def cross(self, c1, c2):
         if random.random() > self.crossover_rate:
@@ -167,7 +187,7 @@ class MyGAForTSP():
 
 if __name__ == '__main__':
     from util import plot_path
-    tsp = MyGAForTSP(max_generation=50)
+    
     # data = [[0.3642, 0.7770], [0.7185, 0.8312], [0.0986, 0.5891], [0.2954, 0.9606], [0.5951, 0.4647],
     #         [0.6697, 0.7657], [0.4353, 0.1709], [0.2131, 0.8349], [0.3479, 0.6984], [0.4516, 0.0488]]
     # rec = tsp.run(data)
@@ -209,25 +229,33 @@ if __name__ == '__main__':
     ################################## Time Window ############################################
     from util import load_time_window_data
     data, time_window = load_time_window_data('Dataset/TSPTW_dataset.txt')
+    tsp = MyGAForTSP(mutation_rate=0.1, crossover_rate=0.7, max_generation=1000)
     rec = tsp.run(data, time_window=time_window)
     print(rec[-1])
     plot_path(rec, data)
     ################################################################################################
     
     ################################# Cluster ################################################
-    from util import load_cluster_data
-    data = load_cluster_data('Dataset/Cluster_dataset.txt')
-    cluster = [set(), set(), set()]
-    for i in range(len(data)):
-        k = (data[i][1]-13) / (data[i][0]-6)
-        if k > 1:
-            cluster[0].add(i)
-        elif k > 0:
-            cluster[1].add(i)
-        else:
-            cluster[2].add(i)
-    rec = tsp.run(data=data, cluster=cluster)
-    print(rec[-1])
-    plot_path(rec, data)
+    # from util import load_cluster_data
+    # data = load_cluster_data('Dataset/Cluster_dataset.txt')
+    # cluster = [set(), set(), set()]
+    # for i in range(len(data)):
+    #     k = (data[i][1]-11.8) / (data[i][0]-2)
+    #     if k > 1:
+    #         cluster[0].add(i)
+    #     elif k > 0:
+    #         cluster[1].add(i)
+    #     else:
+    #         cluster[2].add(i)
+    # import matplotlib.pyplot as plt
+    # plt.scatter([data[x][0] for x in cluster[0]], [data[x][1] for x in cluster[0]])
+    # plt.scatter([data[x][0] for x in cluster[1]], [data[x][1] for x in cluster[1]])
+    # plt.scatter([data[x][0] for x in cluster[2]], [data[x][1] for x in cluster[2]])
+    # plt.show()
+    # print(cluster)
+    # tsp = MyGAForTSP(mutation_rate=0.1, crossover_rate=0.7, max_generation=1000)
+    # rec = tsp.run(data=data, cluster=cluster)
+    # print(rec[-1])
+    # plot_path(rec, data)
     ##################################################################################################
     
